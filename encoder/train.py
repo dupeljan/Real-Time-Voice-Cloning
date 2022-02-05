@@ -17,7 +17,7 @@ def sync(device: torch.device):
 
 def train(run_id: str, clean_data_root: Path, models_dir: Path, umap_every: int, save_every: int,
           backup_every: int, vis_every: int, force_restart: bool, visdom_server: str,
-          no_visdom: bool):
+          no_visdom: bool, restart_steps: bool = False):
     # Create a dataset and a dataloader
     dataset = SpeakerVerificationDataset(clean_data_root)
     loader = SpeakerVerificationDataLoader(
@@ -31,8 +31,7 @@ def train(run_id: str, clean_data_root: Path, models_dir: Path, umap_every: int,
     # because the forward pass is faster on the GPU whereas the loss is often (depending on your
     # hyperparameters) faster on the CPU.
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # FIXME: currently, the gradient is None if loss_device is cuda
-    loss_device = torch.device("cpu")
+    loss_device = device
 
     # Create the model and the optimizer
     model = SpeakerEncoder(device, loss_device)
@@ -43,13 +42,14 @@ def train(run_id: str, clean_data_root: Path, models_dir: Path, umap_every: int,
     model_dir = models_dir / run_id
     model_dir.mkdir(exist_ok=True, parents=True)
     state_fpath = model_dir / "encoder.pt"
+    state_fpath_to_save = model_dir / "encoder_trained.pt"
 
     # Load any existing model
     if not force_restart:
         if state_fpath.exists():
             print("Found existing model \"%s\", loading it and resuming training." % run_id)
             checkpoint = torch.load(state_fpath)
-            init_step = checkpoint["step"]
+            init_step = checkpoint["step"] if not restart_steps else 0
             model.load_state_dict(checkpoint["model_state"])
             optimizer.load_state_dict(checkpoint["optimizer_state"])
             optimizer.param_groups[0]["lr"] = learning_rate_init
@@ -79,7 +79,7 @@ def train(run_id: str, clean_data_root: Path, models_dir: Path, umap_every: int,
         sync(device)
         profiler.tick("Forward pass")
         embeds_loss = embeds.view((speakers_per_batch, utterances_per_speaker, -1)).to(loss_device)
-        loss, eer = model.loss(embeds_loss)
+        loss = model.loss(embeds_loss)
         sync(loss_device)
         profiler.tick("Loss")
 
@@ -93,7 +93,7 @@ def train(run_id: str, clean_data_root: Path, models_dir: Path, umap_every: int,
 
         # Update visualizations
         # learning_rate = optimizer.param_groups[0]["lr"]
-        vis.update(loss.item(), eer, step)
+        vis.update(loss.item(), 0, step)
 
         # Draw projections and save them to the backup folder
         if umap_every != 0 and step % umap_every == 0:
@@ -110,7 +110,7 @@ def train(run_id: str, clean_data_root: Path, models_dir: Path, umap_every: int,
                 "step": step + 1,
                 "model_state": model.state_dict(),
                 "optimizer_state": optimizer.state_dict(),
-            }, state_fpath)
+            }, state_fpath_to_save)
 
         # Make a backup
         if backup_every != 0 and step % backup_every == 0:
