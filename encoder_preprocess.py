@@ -1,7 +1,13 @@
-from encoder.preprocess import preprocess_librispeech, preprocess_voxceleb1, preprocess_voxceleb2
+import argparse
+
+from functools import partial
 from utils.argutils import print_args
 from pathlib import Path
-import argparse
+
+from encoder.preprocess import (preprocess_librispeech,
+                                preprocess_voxceleb1,
+                                preprocess_voxceleb2,
+                                preprocess_like_librispeech)
 
 
 if __name__ == "__main__":
@@ -64,6 +70,8 @@ if __name__ == "__main__":
         "librispeech_other": preprocess_librispeech,
         "voxceleb1": preprocess_voxceleb1,
         "voxceleb2": preprocess_voxceleb2,
+        "book": partial(preprocess_like_librispeech, 'book'),
+        "mozilla": partial(preprocess_like_librispeech, 'mozilla'),
     }
     args = vars(args)
     for dataset in args.pop("datasets"):

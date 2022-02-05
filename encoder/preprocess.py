@@ -120,7 +120,7 @@ def _preprocess_speaker_dirs(speaker_dirs, dataset_name, datasets_root, out_dir,
 
     # Process the utterances for each speaker
     work_fn = partial(_preprocess_speaker, datasets_root=datasets_root, out_dir=out_dir, skip_existing=skip_existing)
-    with Pool(4) as pool:
+    with Pool(8) as pool:
         tasks = pool.imap(work_fn, speaker_dirs)
         for sample_durs in tqdm(tasks, dataset_name, len(speaker_dirs), unit="speakers"):
             for sample_dur in sample_durs:
@@ -128,6 +128,16 @@ def _preprocess_speaker_dirs(speaker_dirs, dataset_name, datasets_root, out_dir,
 
     logger.finalize()
     print("Done preprocessing %s.\n" % dataset_name)
+
+
+def preprocess_like_librispeech(dataset_name: str, datasets_root: Path, out_dir: Path, skip_existing=False):
+    dataset_root, logger = _init_preprocess_dataset(dataset_name, datasets_root, out_dir)
+    if not dataset_root:
+        return
+
+    # Preprocess all speakers
+    speaker_dirs = list(dataset_root.glob("*"))
+    _preprocess_speaker_dirs(speaker_dirs, dataset_name, datasets_root, out_dir, skip_existing, logger)
 
 
 def preprocess_librispeech(datasets_root: Path, out_dir: Path, skip_existing=False):
