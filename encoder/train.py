@@ -16,7 +16,7 @@ def sync(device: torch.device):
 
 
 def train(run_id: str, clean_data_root: Path, models_dir: Path, umap_every: int, save_every: int,
-          backup_every: int, vis_every: int, force_restart: bool, visdom_server: str,
+          backup_every: int, vis_every: int, force_restart: bool, visdom_server: str, visdom_port: int,
           no_visdom: bool, restart_steps: bool = False):
     # Create a dataset and a dataloader
     dataset = SpeakerVerificationDataset(clean_data_root)
@@ -60,7 +60,7 @@ def train(run_id: str, clean_data_root: Path, models_dir: Path, umap_every: int,
     model.train()
 
     # Initialize the visualization environment
-    vis = Visualizations(run_id, vis_every, server=visdom_server, disabled=no_visdom)
+    vis = Visualizations(run_id, vis_every, server=visdom_server, port=visdom_port, disabled=no_visdom)
     vis.log_dataset(dataset)
     vis.log_params()
     device_name = str(torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU")
