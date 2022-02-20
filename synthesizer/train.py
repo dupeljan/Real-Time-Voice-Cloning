@@ -6,6 +6,7 @@ import torch
 import torch.nn.functional as F
 from torch import optim
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 
 from synthesizer import audio
 from synthesizer.models.tacotron import Tacotron
@@ -40,6 +41,7 @@ def train(run_id: str, syn_dir: Path, models_dir: Path, save_every: int,  backup
     meta_folder.mkdir(exist_ok=True)
 
     weights_fpath = model_dir / f"synthesizer.pt"
+    trained_weights_fpath = model_dir / "synthesizer_trained.pt"
     metadata_fpath = syn_dir.joinpath("train.txt")
 
     print("Checkpoint path: {}".format(weights_fpath))
@@ -85,7 +87,7 @@ def train(run_id: str, syn_dir: Path, models_dir: Path, save_every: int,  backup
     # Load the weights
     if force_restart or not weights_fpath.exists():
         print("\nStarting the training of Tacotron from scratch\n")
-        model.save(weights_fpath)
+        model.save(trained_weights_fpath)
 
         # Embeddings metadata
         char_embedding_fpath = meta_folder.joinpath("CharacterEmbeddings.tsv")
@@ -106,7 +108,8 @@ def train(run_id: str, syn_dir: Path, models_dir: Path, save_every: int,  backup
     mel_dir = syn_dir.joinpath("mels")
     embed_dir = syn_dir.joinpath("embeds")
     dataset = SynthesizerDataset(metadata_fpath, mel_dir, embed_dir, hparams)
-
+    # Tensorboard writer
+    writer = SummaryWriter(model_dir)
     for i, session in enumerate(hparams.tts_schedule):
         current_step = model.get_step()
 
@@ -119,7 +122,7 @@ def train(run_id: str, syn_dir: Path, models_dir: Path, save_every: int,  backup
             # Are there no further sessions than the current one?
             if i == len(hparams.tts_schedule) - 1:
                 # We have completed training. Save the model and exit
-                model.save(weights_fpath, optimizer)
+                model.save(trained_weights_fpath, optimizer)
                 break
             else:
                 # There is a following session, go to it
@@ -191,6 +194,12 @@ def train(run_id: str, syn_dir: Path, models_dir: Path, save_every: int,  backup
                       f"{1./time_window.average:#.2} steps/s | Step: {k}k | "
                 stream(msg)
 
+
+                writer.add_scalar('Train/Epoch', epoch, step)
+                writer.add_scalar('Train/lr', lr, step)
+                writer.add_scalar('Train/Loss', loss_window.average, step)
+                writer.add_scalar('Steps/s', 1./time_window.average, step)
+
                 # Backup or save model as appropriate
                 if backup_every != 0 and step % backup_every == 0 :
                     backup_fpath = weights_fpath.parent / f"synthesizer_{k:06d}.pt"
@@ -199,7 +208,7 @@ def train(run_id: str, syn_dir: Path, models_dir: Path, save_every: int,  backup
                 if save_every != 0 and step % save_every == 0 :
                     # Must save latest optimizer state to ensure that resuming training
                     # doesn't produce artifacts
-                    model.save(weights_fpath, optimizer)
+                    model.save(trained_weights_fpath, optimizer)
 
                 # Evaluate model to generate samples
                 epoch_eval = hparams.tts_eval_interval == -1 and i == steps_per_epoch  # If epoch is done
