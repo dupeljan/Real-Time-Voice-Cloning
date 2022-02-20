@@ -17,7 +17,7 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--out_dir", type=Path, default=argparse.SUPPRESS, help=\
         "Path to the output directory that will contain the mel spectrograms, the audios and the "
         "embeds. Defaults to <datasets_root>/SV2TTS/synthesizer/")
-    parser.add_argument("--datasets", type=str, default="LibriSpeech,mozilla,ru_RU,Ruslan,russian_single",
+    parser.add_argument("--datasets", type=str, default="book,mozilla,m_ailabs,Ruslan,russian_single",
                         help="Comma separated list of datasets. Check available datasets in datasets.json file.")
     parser.add_argument("-n", "--n_processes", type=int, default=4, help=\
         "Number of processes in parallel.")
@@ -31,6 +31,9 @@ if __name__ == "__main__":
         (these are used to split long audio files into sub-utterances.)")
     parser.add_argument("--use_g_to_p", type=bool, default=False, help=\
         "Whether use g2p text conversion or not")
+    parser.add_argument("--append_previous_metadata", type=bool, default=False, help= \
+        "Whether append target metadata file or rewrite it."
+        " Use it in case you want to preprocess new dataset and join it with previous preprocessing")
     #parser.add_argument("--datasets_name", type=str, default="LibriSpeech", help=\
     #    "Name of the dataset directory to process.")
     parser.add_argument("--subfolders", type=str, default="train-clean-100,train-clean-360", help=\
