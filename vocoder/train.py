@@ -6,6 +6,7 @@ import torch
 import torch.nn.functional as F
 from torch import optim
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 
 import vocoder.hparams as hp
 from vocoder.display import stream, simple_table
@@ -16,7 +17,7 @@ from vocoder.vocoder_dataset import VocoderDataset, collate_vocoder
 
 
 def train(run_id: str, syn_dir: Path, voc_dir: Path, models_dir: Path, ground_truth: bool, save_every: int,
-          backup_every: int, force_restart: bool):
+          backup_every: int, force_restart: bool, tensorboard_freq: int, use_dataparallel: bool):
     # Check to make sure the hop length is correctly factorised
     assert np.cumprod(hp.voc_upsample_factors)[-1] == hp.hop_length
 
@@ -44,15 +45,17 @@ def train(run_id: str, syn_dir: Path, voc_dir: Path, models_dir: Path, ground_tr
     optimizer = optim.Adam(model.parameters())
     for p in optimizer.param_groups:
         p["lr"] = hp.voc_lr
-    loss_func = F.cross_entropy if model.mode == "RAW" else discretized_mix_logistic_loss
+    model_mode = model.mode
+    loss_func = F.cross_entropy if model_mode == "RAW" else discretized_mix_logistic_loss
 
     # Load the weights
     model_dir = models_dir / run_id
     model_dir.mkdir(exist_ok=True)
     weights_fpath = model_dir / "vocoder.pt"
+    trained_weights_fpath = model_dir / "vocoder_trained.pt"
     if force_restart or not weights_fpath.exists():
         print("\nStarting the training of WaveRNN from scratch\n")
-        model.save(weights_fpath, optimizer)
+        model.save(trained_weights_fpath, optimizer)
     else:
         print("\nLoading weights at %s" % weights_fpath)
         model.load(weights_fpath, optimizer)
@@ -71,6 +74,10 @@ def train(run_id: str, syn_dir: Path, voc_dir: Path, models_dir: Path, ground_tr
                   ('LR', hp.voc_lr),
                   ('Sequence Len', hp.voc_seq_len)])
 
+    if use_dataparallel:
+        model = torch.nn.DataParallel(model)
+
+    writer = SummaryWriter(model_dir)
     for epoch in range(1, 350):
         data_loader = DataLoader(dataset, hp.voc_batch_size, shuffle=True, num_workers=2, collate_fn=collate_vocoder)
         start = time.time()
@@ -82,9 +89,9 @@ def train(run_id: str, syn_dir: Path, voc_dir: Path, models_dir: Path, ground_tr
 
             # Forward pass
             y_hat = model(x, m)
-            if model.mode == 'RAW':
+            if model_mode == 'RAW':
                 y_hat = y_hat.transpose(1, 2).unsqueeze(-1)
-            elif model.mode == 'MOL':
+            elif model_mode == 'MOL':
                 y = y.float()
             y = y.unsqueeze(-1)
 
@@ -98,21 +105,36 @@ def train(run_id: str, syn_dir: Path, voc_dir: Path, models_dir: Path, ground_tr
             speed = i / (time.time() - start)
             avg_loss = running_loss / i
 
-            step = model.get_step()
+            if use_dataparallel:
+                step = model.module.get_step()
+            else:
+                step = model.get_step()
+
             k = step // 1000
 
             if backup_every != 0 and step % backup_every == 0 :
-                model.checkpoint(model_dir, optimizer)
+                if use_dataparallel:
+                    model.module.checkpoint(model_dir, optimizer)
+                else:
+                    model.checkpoint(model_dir, optimizer)
 
             if save_every != 0 and step % save_every == 0 :
-                model.save(weights_fpath, optimizer)
+                if use_dataparallel:
+                    model.module.save(trained_weights_fpath, optimizer)
+                else:
+                    model.save(trained_weights_fpath, optimizer)
 
             msg = f"| Epoch: {epoch} ({i}/{len(data_loader)}) | " \
                 f"Loss: {avg_loss:.4f} | {speed:.1f} " \
                 f"steps/s | Step: {k}k | "
             stream(msg)
 
+            if step % tensorboard_freq == 0:
+                writer.add_scalar('Train/Epoch', epoch, step)
+                writer.add_scalar('Train/lr', hp.voc_lr, step)
+                writer.add_scalar('Train/Loss', avg_loss, step)
+                writer.add_scalar('Steps/s', speed, step)
 
         gen_testset(model, test_loader, hp.voc_gen_at_checkpoint, hp.voc_gen_batched,
-                    hp.voc_target, hp.voc_overlap, model_dir)
+                    hp.voc_target, hp.voc_overlap, model_dir, use_dataparallel)
         print("")

@@ -36,8 +36,12 @@ if __name__ == "__main__":
     parser.add_argument("-b", "--backup_every", type=int, default=25000, help= \
         "Number of steps between backups of the model. Set to 0 to never make backups of the "
         "model.")
+    parser.add_argument("--tensorboard_freq", type=int, default=30, help= \
+        "Number of steps between tensorboard statistics writing. Default is 30.")
     parser.add_argument("-f", "--force_restart", action="store_true", help= \
         "Do not load any saved model and restart from scratch.")
+    parser.add_argument("--use_dataparallel", action="store_true", help= \
+        "Use dataparallel for training.")
     args = parser.parse_args()
 
     # Process the arguments

@@ -116,6 +116,7 @@ class WaveRNN(nn.Module):
         self.num_params()
 
     def forward(self, x, mels):
+        self.flatten_parameters()
         self.step += 1
         bsize = x.size(0)
         if torch.cuda.is_available():
@@ -255,7 +256,6 @@ class WaveRNN(nn.Module):
         self.train()
 
         return output
-
 
     def gen_display(self, i, seq_len, b_size, gen_rate):
         pbar = progbar(i, seq_len)
@@ -432,3 +432,7 @@ class WaveRNN(nn.Module):
         parameters = sum([np.prod(p.size()) for p in parameters]) / 1_000_000
         if print_out :
             print('Trainable Parameters: %.3fM' % parameters)
+
+    def flatten_parameters(self):
+        self.rnn1.flatten_parameters()
+        self.rnn2.flatten_parameters()
