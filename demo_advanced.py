@@ -1,17 +1,20 @@
 import argparse
 import os
-from pathlib import Path
 
 import librosa
 import numpy as np
 import soundfile as sf
 import torch
 
+from pathlib import Path
+
 from encoder import inference as encoder
 from synthesizer.inference import Synthesizer
 from utils.argutils import print_args
 from utils.default_models import ensure_default_models
 from vocoder import inference as vocoder
+from demo_advanced.clusterization import SpeakerMixer
+from demo_advanced.clusterization import Strategy
 
 
 if __name__ == '__main__':
@@ -27,6 +30,20 @@ if __name__ == '__main__':
     parser.add_argument("-v", "--voc_model_fpath", type=Path,
                         default="saved_models/default/vocoder.pt",
                         help="Path to a saved vocoder")
+    parser.add_argument("-c", "--cluster_path", type=Path,
+                        default=None,
+                        help="Path to a directory with per speaker from training datasets mean embeddings."
+                             "To generate this directory one should launch "
+                             "`encoder_preprocess` with `--mode=clustering`")
+    parser.add_argument("--mix_coef", type=float,
+                        default=0.,
+                        help="Coefficient in [0.,1.] for linear mixing of original speaker embedding and"
+                             "closet to original speaker embedding from training dataset. Useful when original" 
+                             "speaker voice is too unique and syntesizer can't perform TTS with satisfying quality." 
+                             "Bigger the coefficient - fewer the original speaker features "
+                             "in embedding for synthesizer")
+    parser.add_argument("--adaptive_mixing", action="store_true", help= \
+                    "Adapted strategy depending on cosine score is used in case this parameter is fed.")
     parser.add_argument("--texts_to_gen", type=Path,
                         default="demo_advanced/default_texts.txt",
                         help="Path to txt file with lines of text to generate")
@@ -36,7 +53,7 @@ if __name__ == '__main__':
                              "Each voice should be put in separate dir with file with meaningful name."
                              "All audio files in dir are used to generate one embedding."
                              "Encoder encode each audio and then all embeddings are averaging.")
-    parser.add_argument("--output_dir", type=Path,
+    parser.add_argument('-o', "--output_dir", type=Path,
                         default="demo_advanced/output/",
                         help="Path to dir to save generated audios.")
     parser.add_argument("--cpu", action="store_true", help= \
@@ -102,9 +119,12 @@ if __name__ == '__main__':
 
     # The following two methods are equivalent:
     # - Directly load from the filepath:
-    aggregate_fn = lambda input: torch.mean(torch.stack([torch.tensor(x) for x in input]), dim=0)
+    aggregate_fn = lambda input: np.mean(input, axis=0)
     embed = None
     args.output_dir.mkdir(exist_ok=True)
+    mixing_strategy = Strategy.linear if not args.adaptive_mixing else Strategy.adaptive
+    speaker_clusterisation = SpeakerMixer(args.cluster_path, mixing_strategy, args.mix_coef)
+
     for name, data in speakers.items():
         print(f'Process speaker {name}')
         speaker_dir_output = args.output_dir.joinpath(name)
@@ -125,6 +145,7 @@ if __name__ == '__main__':
             embed = encoder.embed_utterance(preprocessed_wav)
             speaker_embedds.append(embed)
         embed = aggregate_fn(speaker_embedds)
+        embed = speaker_clusterisation.mix_with_most_similar(embed)
         print("Created the embedding")
 
 
