@@ -15,18 +15,18 @@ class SpeakerMixer:
     def __init__(self, cluster_path: Path, strategy: Strategy = Strategy.linear,
                  mix_c: float = 0, mix_c_adaptive=15):
         self.data_root = cluster_path
-        if cluster_path is None:
-            return
         self.strategy = strategy
         self._speakers_names = []
-        embeddings = []
-        for fname in cluster_path.glob('*.npy'):
-            self._speakers_names.append(fname.name)
-            embeddings.append(np.load(fname))
-        self._embeddings = np.stack(embeddings)
         self.mix_with_most_similar = self._mix_factory()
         self._mix_c = mix_c
         self._mix_c_adaptive = mix_c_adaptive
+
+        if self.data_root:
+            embeddings = []
+            for fname in self.data_root.glob('*.npy'):
+                self._speakers_names.append(fname.name)
+                embeddings.append(np.load(fname))
+            self._embeddings = np.stack(embeddings)
 
     def get_most_similar_emb(self, inp_emb: np.array) -> (np.array, str, float):
         """

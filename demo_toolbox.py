@@ -20,6 +20,8 @@ if __name__ == '__main__':
                         help="Directory containing all saved models")
     parser.add_argument("--cpu", action="store_true", help=\
         "If True, all inference will be done on CPU")
+    parser.add_argument("--default_weights", action="store_true", help=\
+        "If True, default weights will be used for the models")
     parser.add_argument("--seed", type=int, default=None, help=\
         "Optional random number seed value to make toolbox deterministic.")
     args = parser.parse_args()
@@ -31,7 +33,8 @@ if __name__ == '__main__':
         os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
     # Remind the user to download pretrained models if needed
-    ensure_default_models(args.models_dir)
+    if arg_dict.pop("default_weights"):
+        ensure_default_models(args.models_dir)
 
     # Launch the toolbox
     Toolbox(**arg_dict)
