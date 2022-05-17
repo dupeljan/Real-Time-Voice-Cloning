@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Voice Cloning Evaluation</title>
+</head>
+<body>
+<ol>
+    {% for item in payload %}
+            <li>
+                <p>"{{item.text}}"</p>
+                <audio controls="controls">
+                    <source src="audio/{{item.gen_type}}/{{item.speaker}}/{{item.audio_idx}}" type="audio/wav">
+                </audio>
+                <audio controls="controls">
+                    <source src="audio/{{item.ref_type}}/{{item.speaker}}/0" type="audio/wav">
+                </audio>
+            </li>
+    {% endfor %}
+</ol>
+</body>
+</html>
