@@ -44,6 +44,11 @@ if __name__ == '__main__':
                              "in embedding for synthesizer")
     parser.add_argument("--adaptive_mixing", action="store_true", help= \
                     "Adapted strategy depending on cosine score is used in case this parameter is fed.")
+    parser.add_argument("--mix_coef_file", type=Path, 
+                        default=None, help= \
+                    "Path to file with per speaker mix coefitients")
+    parser.add_argument("--speakers", type=str, default=None, help= \
+                    "Coma separated of speakers to pick for the voice generation.")
     parser.add_argument("--texts_to_gen", type=Path,
                         default="demo_advanced/default_texts.txt",
                         help="Path to txt file with lines of text to generate")
@@ -104,8 +109,15 @@ if __name__ == '__main__':
     # Gather all voices to clone
 
     speakers = dict()
+    speakers_to_generate = []
+    if args.speakers is not None:
+        speakers_to_generate = args.speakers.split(',')
+
     for speaker in args.voices_to_clone.iterdir():
         if speaker.is_dir():
+            if speakers_to_generate and speaker.name not in speakers_to_generate:
+                print(f'Skipping speaker {speaker.name}')
+                continue
             speakers[speaker.name] = list(speaker.glob('*'))
 
     texts = [text.rstrip('\n') for text in args.texts_to_gen.open('r').readlines()]
@@ -123,8 +135,12 @@ if __name__ == '__main__':
     embed = None
     args.output_dir.mkdir(exist_ok=True)
     mixing_strategy = Strategy.linear if not args.adaptive_mixing else Strategy.adaptive
-    speaker_clusterisation = SpeakerMixer(args.cluster_path, mixing_strategy, args.mix_coef)
+    speaker_clusterisation = SpeakerMixer(cluster_path=args.cluster_path,
+                                          strategy=mixing_strategy,
+                                          mix_c=args.mix_coef,
+                                          mix_c_file=args.mix_coef_file)
 
+    print(f'Using mixing coef: {speaker_clusterisation.mix_coef}')
     for name, data in speakers.items():
         print(f'Process speaker {name}')
         speaker_dir_output = args.output_dir.joinpath(name)
@@ -145,8 +161,8 @@ if __name__ == '__main__':
             embed = encoder.embed_utterance(preprocessed_wav)
             speaker_embedds.append(embed)
         embed = aggregate_fn(speaker_embedds)
-        embed = speaker_clusterisation.mix_with_most_similar(embed)
-        print("Created the embedding")
+        embed = speaker_clusterisation.mix_with_most_similar(embed, name)
+        print(f"Embedding created successfully with following configuration:\n{speaker_clusterisation.get_configuration(name)}")
 
 
         # If seed is specified, reset torch seed and force synthesizer reload
@@ -190,7 +206,7 @@ if __name__ == '__main__':
                     raise
 
             # Save it on the disk
-            filename = speaker_dir_output / f'{idx}_generated.wav'
+            filename = speaker_dir_output / f'{idx}.wav'
             #print(generated_wav.dtype)
             sf.write(filename, generated_wav.astype(np.float32), synthesizer.sample_rate)
             #num_generated += 1

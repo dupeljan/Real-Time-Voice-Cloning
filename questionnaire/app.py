@@ -20,7 +20,8 @@ os.environ['VOICES_PATH'] = '/home/dupeljan/Projects/master_diploma/generated_vo
 gen_type_map = {
     'ref': 'ref_voices',
     'current_without_heuristics': 'default_output',
-    'previous': 'output_prev'
+    'current_with_heuristics': 'mixed_output',
+    'previous': 'output_prev',
 }
 
 def get_db_connection():
@@ -73,16 +74,16 @@ def gen_speaker(speaker):
         speaker_idx = SPEAKERS.index(speaker)
         payload = [] 
         lines = open(DATA_PATH / 'default_texts.txt', 'r').readlines()
-        for gen_type in ['current_without_heuristics', 'previous']:
-            for idx, line in enumerate(lines[:1]):
-                item = {
-                    'gen_type': gen_type_map[gen_type],
-                    'ref_type': gen_type_map['ref'],
-                    'speaker': speaker, 
-                    'audio_idx': idx,
-                    'text': line,
-                }
-                payload.append(item)
+        for idx, line in enumerate(lines):
+            item = {
+                'gen_types': [gen_type_map[key] for key in ['previous', 
+                                                            'current_without_heuristics',
+                                                            'current_with_heuristics']],
+                'speaker': speaker, 
+                'audio_idx': idx,
+                'text': line,
+            }
+            payload.append(item)
     
         return render_template('index.html', payload=payload, speaker=speaker, ref_type=gen_type_map['ref'],
                                page_num=speaker_idx + 1, pages_total=len(SPEAKERS)) 
