@@ -2,7 +2,15 @@ import os
 
 from pathlib import Path
 from itertools import islice
-from flask import Flask, render_template, send_file
+from flask import (
+    Flask,
+    render_template,
+    send_file,
+    request,
+    redirect,
+    url_for,
+    session
+    )
 
 app = Flask(__name__)
 
@@ -14,14 +22,26 @@ gen_type_map = {
     'previous': 'output_prev'
 }
 
-@app.route('/eval_voice_cloning')
+DATA_PATH = Path(os.environ['VOICES_PATH']) 
+SPEAKERS = [speaker.name for speaker in (DATA_PATH / gen_type_map['ref']).glob('*')]
+
+@app.route('/start')
 def gen_index():
-    data_path = Path(os.environ['VOICES_PATH']) 
-    payload = [] 
-    speakers = [speaker.name for speaker in (data_path / gen_type_map['ref']).glob('*')]
-    lines = open(data_path / 'default_texts.txt', 'r').readlines()
-    for gen_type in ['current_without_heuristics', 'previous']:
-        for speaker in [speakers[1]]:
+    return redirect(f'/eval_voice_cloning/{SPEAKERS[0]}') 
+
+
+@app.route('/eval_voice_cloning/<speaker>', methods=('GET', 'POST'))
+def gen_speaker(speaker):
+    if request.method == 'POST':
+        print(request.form.keys())
+        return redirect(f'/eval_voice_cloning/{SPEAKERS[0]}') 
+    else:
+        if speaker not in SPEAKERS:
+            return f'Speaker {speaker} is not exist'
+
+        payload = [] 
+        lines = open(DATA_PATH / 'default_texts.txt', 'r').readlines()
+        for gen_type in ['current_without_heuristics', 'previous']:
             for idx, line in enumerate(lines):
                 item = {
                     'gen_type': gen_type_map[gen_type],
@@ -32,10 +52,10 @@ def gen_index():
                 }
                 payload.append(item)
     
-    return render_template('index.html', payload=payload) 
+        return render_template('index.html', payload=payload, speaker=speaker, ref_type=gen_type_map['ref']) 
 
 
-@app.route('/audio/<gen_type>/<speaker>/<int:audio_idx>')
+@app.route('/eval_voice_cloning/audio/<gen_type>/<speaker>/<int:audio_idx>')
 def send_audio(gen_type, speaker, audio_idx):
     path_to_audio_file = Path(os.environ['VOICES_PATH']) / gen_type / speaker / f'{audio_idx}.wav'
     return send_file(
