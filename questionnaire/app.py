@@ -13,7 +13,9 @@ from flask import (
     )
 
 app = Flask(__name__)
-app.secret_key = b'_5#y2L"F4Q8z\n\xec]/asdfl;1asdf41'
+if 'FLASK_SECRET_KEY' not in os.environ:
+    raise RuntimeError('\'FLASK_SECRET_KEY\' env var is not specified')
+app.secret_key = bytes(os.environ['FLASK_SECRET_KEY'], 'utf-8')
 
 os.environ['VOICES_PATH'] = '/home/dupeljan/Projects/master_diploma/generated_voices' 
 
