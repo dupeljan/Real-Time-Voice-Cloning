@@ -6,5 +6,6 @@ CREATE TABLE records (
     speaker TEXT NOT NULL,
     gen_type TEXT NOT NULL,
     audio_idx INTEGER NOT NULL,
-    mode TEXT NOT NULL
+    mode TEXT NOT NULL,
+    score INTEGER NOT NULL
 );

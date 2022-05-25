@@ -55,10 +55,10 @@ def gen_speaker(speaker):
 
         
         conn = get_db_connection()
-        for k in request.form:
-            gen_type, _, audio_idx, mode = k.split('-')
-            conn.execute('INSERT INTO records (user, speaker, gen_type, audio_idx, mode) VALUES (?, ?, ?, ?, ?)',
-                         (session['user'], speaker, gen_type, audio_idx, mode))
+        for key, score in request.form.items():
+            gen_type, _, audio_idx, mode = key.split('-')
+            conn.execute('INSERT INTO records (user, speaker, gen_type, audio_idx, mode, score) VALUES (?, ?, ?, ?, ?, ?)',
+                         (session['user'], speaker, gen_type, audio_idx, mode, score))
         conn.commit()
         conn.close()
         return redirect_to_next_speaker()
