@@ -7,6 +7,7 @@ from pathlib import Path
 
 # TODO: improve with a pool of speakers for data efficiency
 
+
 class SpeakerVerificationDataset(Dataset):
     def __init__(self, datasets_root: Path):
         self.root = datasets_root
@@ -53,4 +54,3 @@ class SpeakerVerificationDataLoader(DataLoader):
 
     def collate(self, speakers):
         return SpeakerBatch(speakers, self.utterances_per_speaker, partials_n_frames) 
-    

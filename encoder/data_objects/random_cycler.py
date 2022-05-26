@@ -1,5 +1,9 @@
 import random
 
+from typing import List
+from encoder.data_objects.speaker import Speaker
+
+
 class RandomCycler:
     """
     Creates an internal copy of a sequence and allows access to its items in a constrained random 
@@ -9,7 +13,7 @@ class RandomCycler:
         - Between two appearances of the same item, there may be at most 2 * (n - 1) other items.
     """
     
-    def __init__(self, source):
+    def __init__(self, source: List[Speaker]):
         if len(source) == 0:
             raise Exception("Can't create RandomCycler from an empty collection")
         self.all_items = list(source)

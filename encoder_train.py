@@ -32,9 +32,12 @@ if __name__ == "__main__":
     parser.add_argument("-b", "--backup_every", type=int, default=7500, help= \
         "Number of steps between backups of the model. Set to 0 to never make backups of the "
         "model.")
+    parser.add_argument("-rs", "--restart_steps", type=bool, default=False, help= \
+         "Restart checkpoint steps.")
     parser.add_argument("-f", "--force_restart", action="store_true", help= \
         "Do not load any saved model.")
     parser.add_argument("--visdom_server", type=str, default="http://localhost")
+    parser.add_argument("--visdom_port", type=int, default=8097)
     parser.add_argument("--no_visdom", action="store_true", help= \
         "Disable visdom.")
     args = parser.parse_args()

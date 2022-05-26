@@ -1,0 +1,7 @@
+         mode        gen_type  avg(score)
+0     quality  default_output    3.278571
+1     quality    mixed_output    3.735714
+2     quality     output_prev    1.928571
+3  similarity  default_output    2.685714
+4  similarity    mixed_output    2.478571
+5  similarity     output_prev    1.300000

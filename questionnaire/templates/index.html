@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Voice Cloning Evaluation</title>
+</head>
+<style>
+.Row {
+display: table;
+}
+.Column {
+    display: table-cell
+}
+</style>
+<body>
+<p>
+    Валидация для спикера {{speaker}}, {{page_num}} / {{pages_total}}
+</p>
+    <audio controls="controls">
+        <source src="audio/{{ref_type}}/{{speaker}}/0" type="audio/wav">
+    </audio>
+<form method="post">
+<ol>
+    {% for item in payload %}
+        <li>
+            <p>"{{item.text}}"</p><br>
+            <div class="Row">
+                <div class="Column">
+                    <fieldset></fieldset>
+                    <fieldset>Качество генерации</fieldset>
+                    <fieldset>Схожесть голосов</fieldset>
+                </div>
+                {% for gen_type in item.gen_types %}
+                <div class="Column">
+                <audio controls="controls">
+                    <source src="audio/{{gen_type}}/{{item.speaker}}/{{item.audio_idx}}" type="audio/wav">
+                </audio>
+            <fieldset>
+                <input type="radio" value="1" name="{{gen_type}}-{{item.speaker}}-{{item.audio_idx}}-quality" required>
+                <label>1</label>
+                <input type="radio" value="2" name="{{gen_type}}-{{item.speaker}}-{{item.audio_idx}}-quality" required>
+                <label>2</label>
+                <input type="radio" value="3" name="{{gen_type}}-{{item.speaker}}-{{item.audio_idx}}-quality" required>
+                <label>3</label>
+                <input type="radio" value="4" name="{{gen_type}}-{{item.speaker}}-{{item.audio_idx}}-quality" required>
+                <label>4</label>
+                <input type="radio" value="5" name="{{gen_type}}-{{item.speaker}}-{{item.audio_idx}}-quality" required>
+                <label>5</label>
+            </fieldset>
+            <fieldset>
+                <input type="radio" value="1" name="{{gen_type}}-{{item.speaker}}-{{item.audio_idx}}-similarity" required>
+                <label>1</label>
+                <input type="radio" value="2" name="{{gen_type}}-{{item.speaker}}-{{item.audio_idx}}-similarity" required>
+                <label>2</label>
+                <input type="radio" value="3" name="{{gen_type}}-{{item.speaker}}-{{item.audio_idx}}-similarity" required>
+                <label>3</label>
+                <input type="radio" value="4" name="{{gen_type}}-{{item.speaker}}-{{item.audio_idx}}-similarity" required>
+                <label>4</label>
+                <input type="radio" value="5" name="{{gen_type}}-{{item.speaker}}-{{item.audio_idx}}-similarity" required>
+                <label>5</label>
+            </fieldset>
+        </div>
+        {% endfor %}
+        </div><br>
+        </li>
+    {% endfor %}
+</ol>
+<button type="submit">Submit</button>
+</form>
+</body>
+</html>

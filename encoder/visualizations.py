@@ -26,7 +26,7 @@ colormap = np.array([
 
 
 class Visualizations:
-    def __init__(self, env_name=None, update_every=10, server="http://localhost", disabled=False):
+    def __init__(self, env_name=None, update_every=10, server="http://localhost", disabled=False, port=8097):
         # Tracking data
         self.last_update_timestamp = timer()
         self.update_every = update_every
@@ -49,7 +49,7 @@ class Visualizations:
 
         # Connect to visdom and open the corresponding window in the browser
         try:
-            self.vis = visdom.Visdom(server, env=self.env_name, raise_exceptions=True)
+            self.vis = visdom.Visdom(server, env=self.env_name, raise_exceptions=True, port=port)
         except ConnectionError:
             raise Exception("No visdom server detected. Run the command \"visdom\" in your CLI to "
                             "start it.")
