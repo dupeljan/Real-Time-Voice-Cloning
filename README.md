@@ -1,6 +1,11 @@
-# Real-Time Voice Cloning
+# Real-Time Voice Cloning Rus  
 This repository is an implementation of [Transfer Learning from Speaker Verification to
-Multispeaker Text-To-Speech Synthesis](https://arxiv.org/pdf/1806.04558.pdf) (SV2TTS) with a vocoder that works in real-time. This was my [master's thesis](https://matheo.uliege.be/handle/2268.2/6801).
+Multispeaker Text-To-Speech Synthesis](https://arxiv.org/pdf/1806.04558.pdf) (SV2TTS) with a vocoder that works in real-time, trained on Russian voice datasets. In comparison with previous [work](https://github.com/vlomme/Multi-Tacotron-Voice-Cloning) achieves better Mean Opinion Score on generation quality and generated voice similarity still having simpler model structure.
+
+Simple web application to compare and evaluate MOS available [here](/questionnaire). Reference voice generation from previous work collab notebook available [here](/Multi_Tacotron_Voice_Cloning_ref.ipynb).
+
+
+This was a [master's thesis](https://matheo.uliege.be/handle/2268.2/6801).
 
 SV2TTS is a deep learning framework in three stages. In the first stage, one creates a digital representation of a voice from a few seconds of audio. In the second and third stages, this representation is used as reference to generate speech given arbitrary text.
 
